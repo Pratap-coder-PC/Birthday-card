@@ -2,52 +2,115 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#ffb3cc" />
-  <link rel="manifest" href="manifest.json" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Birthday Card</title>
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap" rel="stylesheet" />
   <style>
-    html, body { margin:0; padding:0; background:radial-gradient(circle,#ffe6f0,#ffb3cc); font-family:'Comic Neue', cursive; text-align:center; color:#333; overflow-x:hidden; }
-    .container { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
-    h1 { font-size:2.5em; margin-bottom:10px; }
-    input, textarea, button { padding:15px; margin:8px; border-radius:10px; border:2px solid #ff80aa; font-size:1.2em; width:90%; max-width:400px; box-sizing:border-box; font-family:'Comic Neue', cursive; }
-    button { background:#ff66a3; color:#fff; cursor:pointer; transition:background .3s; }
-    button:hover { background:#ff3385; }
-    #cake { margin-top:20px; display:flex; flex-wrap:wrap; justify-content:center; }
-    .candle { width:10px; height:30px; background:orange; margin:5px; position:relative; }
-    .flame { width:8px; height:8px; background:yellow; border-radius:50%; position:absolute; top:-10px; left:1px; }
-    #confetti { font-size:40px; animation:fall 2s ease-in-out forwards; margin-top:20px; display:none; }
-    @keyframes fall { 0%{transform:translateY(-100vh);}100%{transform:translateY(0);} }
-    #cardContainer { display:none; flex-direction:column; align-items:center; width:100%; }
-    #shareLink { margin-top:20px; font-size:1em; color:#444; word-break:break-word; }
-    #copyBtn { margin-top:10px; padding:10px 20px; font-size:1em; border:none; background:#ff80aa; color:#fff; border-radius:8px; cursor:pointer; }
-    #copyBtn:hover { background:#ff4d88; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Comic Neue', cursive;
+      background: radial-gradient(circle, #ffe6f0, #ffb3cc);
+      text-align: center;
+    }
+    .container {
+      padding: 30px;
+      max-width: 600px;
+      margin: auto;
+    }
+    input, textarea, button {
+      font-family: inherit;
+      font-size: 1.2em;
+      padding: 10px;
+      margin: 10px;
+      width: 90%;
+      max-width: 400px;
+      border: 2px solid #ff80aa;
+      border-radius: 10px;
+    }
+    button {
+      background: #ff66a3;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #ff3385;
+    }
+    #cake {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .candle {
+      width: 10px;
+      height: 30px;
+      background: orange;
+      margin: 5px;
+      position: relative;
+    }
+    .flame {
+      width: 8px;
+      height: 8px;
+      background: yellow;
+      border-radius: 50%;
+      position: absolute;
+      top: -10px;
+      left: 1px;
+      animation: wiggle 0.3s infinite alternate ease-in-out;
+    }
+    @keyframes wiggle {
+      0% { transform: rotate(-5deg); }
+      100% { transform: rotate(5deg); }
+    }
+    #confetti {
+      font-size: 40px;
+      display: none;
+      margin-top: 20px;
+      animation: fall 2s ease-in-out forwards;
+    }
+    @keyframes fall {
+      0% { transform: translateY(-100vh); }
+      100% { transform: translateY(0); }
+    }
+    #copyBtn {
+      background: #ff80aa;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #copyBtn:hover {
+      background: #ff4d88;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🎂 Make a Birthday Card 🎉</h1>
     <div id="formContainer">
-      <input type="text" id="nameInput" placeholder="Recipient's Name" /><br />
-      <input type="number" id="ageInput" placeholder="Age" /><br />
-      <textarea id="messageInput" placeholder="Your birthday message"></textarea><br />
+      <input id="nameInput" placeholder="Recipient's Name" />
+      <input id="ageInput" type="number" placeholder="Age" />
+      <textarea id="messageInput" placeholder="Your birthday message"></textarea>
       <button onclick="createCard()">Create Card</button>
     </div>
-    <div id="cardContainer">
+
+    <div id="cardContainer" style="display:none;">
       <h2>Happy Birthday <span id="recipientName"></span>! 🎈</h2>
       <div id="cake"></div>
-      <p>Blow out the candles! 🎤</p>
-      <button onclick="startListening()">Start Listening</button>
-      <div id="confetti">🎊🎉✨💖</div>
-      <div id="finalMessage" style="margin-top:20px;font-size:1.5em;"></div>
-      <div id="shareLink"></div>
+      <p>Blow into the mic to blow out the candles! 🎤</p>
+      <button onclick="startMicMonitoring()">Start Mic</button>
+      <div id="confetti">🎉🎊✨💖</div>
+      <div id="finalMessage" style="font-size: 1.5em; margin-top: 20px;"></div>
+      <div id="shareLink" style="margin-top:20px;"></div>
     </div>
   </div>
 
   <script>
     let flameElements = [];
-    let recognition;
+    let finalMessageText = '';
+    let audioContext, analyser, dataArray;
 
     function createCard(fromURL = false) {
       const name = document.getElementById('nameInput').value.trim();
@@ -55,10 +118,11 @@
       const message = document.getElementById('messageInput').value.trim();
 
       if (!fromURL && (!name || !age || !message || age <= 0)) {
-        alert("Please fill out all fields correctly.");
+        alert('Please fill out all fields correctly.');
         return;
       }
 
+      finalMessageText = message;
       document.getElementById('recipientName').innerText = name;
       document.getElementById('cake').innerHTML = '';
       flameElements = [];
@@ -74,51 +138,63 @@
       }
 
       document.getElementById('formContainer').style.display = 'none';
-      document.getElementById('cardContainer').style.display = 'flex';
+      document.getElementById('cardContainer').style.display = 'block';
       document.getElementById('finalMessage').innerText = '';
       document.getElementById('confetti').style.display = 'none';
 
       if (!fromURL) {
-        const shareURL = `${window.location.origin}${window.location.pathname}?name=${encodeURIComponent(name)}&age=${age}&message=${encodeURIComponent(message)}`;
-        document.getElementById('shareLink').innerHTML = `🔗 Share this card: <br><a href="${shareURL}" target="_blank">${shareURL}</a><br><button id="copyBtn" onclick="copyToClipboard('${shareURL}')">📋 Copy Link</button>`;
+        const url = `${location.origin}${location.pathname}?name=${encodeURIComponent(name)}&age=${age}&message=${encodeURIComponent(message)}`;
+        document.getElementById('shareLink').innerHTML = `
+          🔗 Share this card:<br>
+          <a href="${url}" target="_blank">${url}</a><br>
+          <button id="copyBtn" onclick="copyToClipboard('${url}')">📋 Copy Link</button>`;
       }
     }
 
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
-        alert("Link copied to clipboard!");
-      }, err => {
-        alert("Failed to copy: " + err);
+        alert('Link copied to clipboard!');
       });
     }
 
-    function startListening() {
-      if (!('webkitSpeechRecognition' in window)) {
-        alert('Speech Recognition not supported');
+    function startMicMonitoring() {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const mic = audioContext.createMediaStreamSource(stream);
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 512;
+          dataArray = new Uint8Array(analyser.frequencyBinCount);
+          mic.connect(analyser);
+          monitorVolume();
+        })
+        .catch(() => alert('Microphone access denied.'));
+    }
+
+    function monitorVolume() {
+      analyser.getByteFrequencyData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        sum += dataArray[i];
+      }
+      const average = sum / dataArray.length;
+
+      if (average > 50) { // 🔊 Loudness threshold
+        blowCandles();
         return;
       }
-      recognition = new webkitSpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-      recognition.onresult = (e) => {
-        const t = e.results[0][0].transcript.toLowerCase();
-        if (t.includes("blow") || t.includes("out")) {
-          blowCandles();
-        }
-      };
-      recognition.onerror = (e) => console.error(e);
-      recognition.start();
+
+      requestAnimationFrame(monitorVolume);
     }
 
     function blowCandles() {
       flameElements.forEach(f => f.style.display = 'none');
       document.getElementById('confetti').style.display = 'block';
-      document.getElementById('finalMessage').innerText = document.getElementById('messageInput').value;
+      document.getElementById('finalMessage').innerText = finalMessageText;
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(location.search);
       const name = params.get('name');
       const age = params.get('age');
       const message = params.get('message');
