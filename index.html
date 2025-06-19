@@ -20,6 +20,9 @@
     #confetti { font-size:40px; animation:fall 2s ease-in-out forwards; margin-top:20px; display:none; }
     @keyframes fall { 0%{transform:translateY(-100vh);}100%{transform:translateY(0);} }
     #cardContainer { display:none; flex-direction:column; align-items:center; width:100%; }
+    #shareLink { margin-top:20px; font-size:1em; color:#444; word-break:break-word; }
+    #copyBtn { margin-top:10px; padding:10px 20px; font-size:1em; border:none; background:#ff80aa; color:#fff; border-radius:8px; cursor:pointer; }
+    #copyBtn:hover { background:#ff4d88; }
   </style>
 </head>
 <body>
@@ -38,6 +41,7 @@
       <button onclick="startListening()">Start Listening</button>
       <div id="confetti">🎊🎉✨💖</div>
       <div id="finalMessage" style="margin-top:20px;font-size:1.5em;"></div>
+      <div id="shareLink"></div>
     </div>
   </div>
 
@@ -45,17 +49,20 @@
     let flameElements = [];
     let recognition;
 
-    function createCard() {
+    function createCard(fromURL = false) {
       const name = document.getElementById('nameInput').value.trim();
       const age = parseInt(document.getElementById('ageInput').value);
       const message = document.getElementById('messageInput').value.trim();
-      if (!name || !age || !message || age <= 0) {
+
+      if (!fromURL && (!name || !age || !message || age <= 0)) {
         alert("Please fill out all fields correctly.");
         return;
       }
+
       document.getElementById('recipientName').innerText = name;
       document.getElementById('cake').innerHTML = '';
       flameElements = [];
+
       for (let i = 0; i < age && i < 100; i++) {
         const candle = document.createElement('div');
         candle.className = 'candle';
@@ -65,10 +72,24 @@
         candle.appendChild(flame);
         document.getElementById('cake').appendChild(candle);
       }
+
       document.getElementById('formContainer').style.display = 'none';
       document.getElementById('cardContainer').style.display = 'flex';
       document.getElementById('finalMessage').innerText = '';
       document.getElementById('confetti').style.display = 'none';
+
+      if (!fromURL) {
+        const shareURL = `${window.location.origin}${window.location.pathname}?name=${encodeURIComponent(name)}&age=${age}&message=${encodeURIComponent(message)}`;
+        document.getElementById('shareLink').innerHTML = `🔗 Share this card: <br><a href="${shareURL}" target="_blank">${shareURL}</a><br><button id="copyBtn" onclick="copyToClipboard('${shareURL}')">📋 Copy Link</button>`;
+      }
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Link copied to clipboard!");
+      }, err => {
+        alert("Failed to copy: " + err);
+      });
     }
 
     function startListening() {
@@ -96,11 +117,17 @@
       document.getElementById('finalMessage').innerText = document.getElementById('messageInput').value;
     }
 
-    // Show "Add to Home Screen" prompt
-    window.addEventListener('beforeinstallprompt', e => {
-      e.userChoice.then(choice => {
-        if (choice.outcome === 'accepted') console.log('User added to home screen');
-      });
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const name = params.get('name');
+      const age = params.get('age');
+      const message = params.get('message');
+      if (name && age && message) {
+        document.getElementById('nameInput').value = name;
+        document.getElementById('ageInput').value = age;
+        document.getElementById('messageInput').value = message;
+        createCard(true);
+      }
     });
   </script>
 </body>
