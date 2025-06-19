@@ -4,34 +4,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3D Birthday Card</title>
+  <title>Birthday Card</title>
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap" rel="stylesheet" />
   <style>
-    body {
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
       margin: 0;
       padding: 0;
+      height: 100%;
       font-family: 'Comic Neue', cursive;
       background: linear-gradient(to bottom right, #fff0f5, #ffd9ec);
-      text-align: center;
       color: #333;
+      overflow-x: hidden;
     }
     .container {
-      padding: 30px;
-      max-width: 700px;
-      margin: auto;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      background: #fff5fa;
-      border-radius: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      text-align: center;
     }
     input, textarea, button {
       font-family: inherit;
-      font-size: 1.2em;
+      font-size: 1.1em;
       padding: 12px;
       margin: 10px;
       width: 90%;
       max-width: 450px;
       border: 2px solid #ff80aa;
-      border-radius: 12px;
+      border-radius: 10px;
     }
     button {
       background: #ff66a3;
@@ -41,47 +46,36 @@
     button:hover {
       background: #ff3385;
     }
-    #cakeWrapper {
+    .cake-wrapper {
       position: relative;
-      margin-top: 20px;
+      width: 90%;
+      max-width: 320px;
+      margin: 30px auto;
     }
     .cake-base {
-      position: relative;
-      width: 260px;
-      height: 160px;
-      margin: 0 auto;
-      background: linear-gradient(to bottom, #ffb3cc, #ff99bb);
-      border-radius: 20px 20px 10px 10px;
-      box-shadow: inset 0 -10px 15px rgba(0,0,0,0.1);
-    }
-    .cake-layer::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
       width: 100%;
-      height: 20px;
-      background: repeating-linear-gradient(-45deg, #fff, #fff 5px, #ffccdd 5px, #ffccdd 10px);
-      border-radius: 20px 20px 0 0;
+      height: 160px;
+      background: radial-gradient(#ff99cc, #ff6699);
+      border-radius: 20px 20px 10px 10px;
+      box-shadow: inset 0 -10px 20px rgba(0,0,0,0.1);
     }
     #cake {
       position: absolute;
       top: -60px;
       left: 0;
       right: 0;
-      margin: auto;
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
-      width: 100%;
+      flex-wrap: wrap;
+      padding: 10px;
     }
     .candle {
       width: 8px;
       height: 35px;
       background: repeating-linear-gradient(45deg, orange, orange 4px, red 4px, red 8px);
-      margin: 4px;
-      position: relative;
+      margin: 3px;
       border-radius: 2px;
+      position: relative;
     }
     .flame {
       width: 12px;
@@ -114,43 +108,49 @@
       0% { transform: translateY(-100vh); opacity: 0; }
       100% { transform: translateY(0); opacity: 1; }
     }
+    #shareLink {
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #333;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
-
-<div class="container">
-  <h1>🎂 Make a Birthday Card 🎉</h1>
-  <div id="formContainer">
-    <input id="nameInput" placeholder="Recipient's Name" />
-    <input id="ageInput" type="number" placeholder="Age" />
-    <textarea id="messageInput" placeholder="Your birthday message"></textarea>
-    <button onclick="createCard()">Create Card</button>
-  </div>
-
-  <div id="cardContainer" style="display:none;">
-    <h2>Happy Birthday <span id="recipientName"></span>! 🎈</h2>
-    <div id="cakeWrapper">
-      <div id="cake"></div>
-      <div class="cake-base cake-layer"></div>
+  <div class="container">
+    <h1>🎂 Make a Birthday Card 🎉</h1>
+    <div id="formContainer">
+      <input id="nameInput" placeholder="Recipient's Name" />
+      <input id="ageInput" type="number" placeholder="Age" />
+      <textarea id="messageInput" placeholder="Your birthday message"></textarea>
+      <button onclick="createCard()">Create Card</button>
     </div>
-    <p>Blow into the mic to blow out the candles! 🎤</p>
-    <button onclick="startMicMonitoring()">Start Mic</button>
-    <div id="confetti">🎉🎊✨💖</div>
-    <div id="finalMessage" style="font-size: 1.5em; margin-top: 20px;"></div>
+
+    <div id="cardContainer" style="display:none;">
+      <h2>Happy Birthday <span id="recipientName"></span>! 🎈</h2>
+      <div class="cake-wrapper">
+        <div id="cake"></div>
+        <div class="cake-base"></div>
+      </div>
+      <p>Blow into the mic to blow out the candles! 🎤</p>
+      <button onclick="startMicMonitoring()">Start Mic</button>
+      <div id="confetti">🎉🎊✨💖</div>
+      <div id="finalMessage" style="font-size: 1.5em; margin-top: 20px;"></div>
+      <div id="shareLink"></div>
+    </div>
   </div>
-</div>
 
 <script>
   let flameElements = [];
   let audioContext, analyser, dataArray;
 
-  function createCard() {
+  function createCard(fromURL = false) {
     const name = document.getElementById('nameInput').value.trim();
     const age = parseInt(document.getElementById('ageInput').value);
     const message = document.getElementById('messageInput').value.trim();
 
-    if (!name || !age || !message || age <= 0) {
-      alert("Please enter all fields correctly.");
+    if (!fromURL && (!name || !age || !message || age <= 0)) {
+      alert("Please fill all fields correctly.");
       return;
     }
 
@@ -171,6 +171,11 @@
       flameElements.push(flame);
       candle.appendChild(flame);
       cake.appendChild(candle);
+    }
+
+    if (!fromURL) {
+      const shareURL = `${window.location.origin}${window.location.pathname}?name=${encodeURIComponent(name)}&age=${age}&message=${encodeURIComponent(message)}`;
+      document.getElementById('shareLink').innerHTML = `🔗 Share this card:<br><a href="${shareURL}" target="_blank">${shareURL}</a>`;
     }
   }
 
@@ -213,6 +218,19 @@
 
     requestAnimationFrame(monitorMic);
   }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get('name');
+    const age = params.get('age');
+    const message = params.get('message');
+    if (name && age && message) {
+      document.getElementById('nameInput').value = name;
+      document.getElementById('ageInput').value = age;
+      document.getElementById('messageInput').value = message;
+      createCard(true);
+    }
+  });
 </script>
 </body>
 </html>
