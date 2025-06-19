@@ -13,13 +13,11 @@
       background: linear-gradient(to bottom right, #ffe6f0, #ffd6eb, #ffb3cc);
       text-align: center;
       color: #333;
-      perspective: 1000px;
     }
     .container {
       padding: 30px;
       max-width: 700px;
       margin: auto;
-      transform: rotateX(3deg) rotateY(-3deg);
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
       background: #fff0f5;
       border-radius: 15px;
@@ -49,20 +47,36 @@
     button:hover {
       background: #ff3385;
     }
-    #cake {
+    #cakeWrapper {
+      position: relative;
       margin-top: 20px;
+    }
+    #cakeBase {
+      width: 250px;
+      height: 150px;
+      background: #ffcccc;
+      margin: 0 auto;
+      border-radius: 20px 20px 10px 10px;
+      position: relative;
+    }
+    #cake {
+      position: absolute;
+      top: -60px;
+      left: 0;
+      right: 0;
+      margin: auto;
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
+      width: 100%;
     }
     .candle {
       width: 10px;
       height: 30px;
       background: orange;
-      margin: 5px;
+      margin: 2px;
       position: relative;
       border-radius: 3px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     .flame {
       width: 10px;
@@ -72,7 +86,9 @@
       position: absolute;
       top: -12px;
       left: -1px;
-      animation: wiggle 0.3s infinite alternate ease-in-out;
+    }
+    .wiggle {
+      animation: wiggle 0.2s infinite alternate ease-in-out;
     }
     @keyframes wiggle {
       0% { transform: rotate(-6deg); }
@@ -88,26 +104,9 @@
       0% { transform: translateY(-100vh); opacity: 0; }
       100% { transform: translateY(0); opacity: 1; }
     }
-    #copyBtn, #shareBtn {
-      background: #ff80aa;
-      color: white;
-      padding: 10px 18px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      margin: 10px;
-      transition: background 0.3s ease;
-    }
-    #copyBtn:hover, #shareBtn:hover {
-      background: #ff4d88;
-    }
   </style>
 </head>
 <body>
-
-<audio autoplay loop>
-  <source src="https://cdn.pixabay.com/audio/2022/12/07/audio_9954cdbe7d.mp3" type="audio/mpeg">
-</audio>
 
 <div class="container">
   <h1>🎂 Make a Birthday Card 🎉</h1>
@@ -120,35 +119,40 @@
 
   <div id="cardContainer" style="display:none;">
     <h2>Happy Birthday <span id="recipientName"></span>! 🎈</h2>
-    <div id="cake"></div>
+    <div id="cakeWrapper">
+      <div id="cake"></div>
+      <div id="cakeBase"></div>
+    </div>
     <p>Blow into the mic to blow out the candles! 🎤</p>
     <button onclick="startMicMonitoring()">Start Mic</button>
     <div id="confetti">🎉🎊✨💖</div>
     <div id="finalMessage" style="font-size: 1.5em; margin-top: 20px;"></div>
-    <div id="shareLink" style="margin-top:20px;"></div>
   </div>
 </div>
 
 <script>
   let flameElements = [];
-  let finalMessageText = '';
   let audioContext, analyser, dataArray;
 
-  function createCard(fromURL = false) {
+  function createCard() {
     const name = document.getElementById('nameInput').value.trim();
     const age = parseInt(document.getElementById('ageInput').value);
     const message = document.getElementById('messageInput').value.trim();
 
-    if (!fromURL && (!name || !age || !message || age <= 0)) {
-      alert('Please fill out all fields correctly.');
+    if (!name || !age || !message || age <= 0) {
+      alert("Please enter all fields correctly.");
       return;
     }
 
-    finalMessageText = message;
     document.getElementById('recipientName').innerText = name;
-    document.getElementById('cake').innerHTML = '';
-    flameElements = [];
+    document.getElementById('finalMessage').innerText = '';
+    document.getElementById('confetti').style.display = 'none';
+    document.getElementById('formContainer').style.display = 'none';
+    document.getElementById('cardContainer').style.display = 'block';
 
+    flameElements = [];
+    const cake = document.getElementById('cake');
+    cake.innerHTML = '';
     for (let i = 0; i < age && i < 100; i++) {
       const candle = document.createElement('div');
       candle.className = 'candle';
@@ -156,35 +160,7 @@
       flame.className = 'flame';
       flameElements.push(flame);
       candle.appendChild(flame);
-      document.getElementById('cake').appendChild(candle);
-    }
-
-    document.getElementById('formContainer').style.display = 'none';
-    document.getElementById('cardContainer').style.display = 'block';
-    document.getElementById('finalMessage').innerText = '';
-    document.getElementById('confetti').style.display = 'none';
-
-    if (!fromURL) {
-      const url = `${location.origin}${location.pathname}?name=${encodeURIComponent(name)}&age=${age}&message=${encodeURIComponent(message)}`;
-      document.getElementById('shareLink').innerHTML = `
-        🔗 Share this card:<br>
-        <a href="${url}" target="_blank">${url}</a><br>
-        <button id="copyBtn" onclick="copyToClipboard('${url}')">📋 Copy Link</button>
-        <button id="shareBtn" onclick="shareCard('${url}')">🔗 Share</button>`;
-    }
-  }
-
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Link copied to clipboard!');
-    });
-  }
-
-  function shareCard(url) {
-    if (navigator.share) {
-      navigator.share({ title: 'Birthday Card 🎉', text: 'Check out this fun birthday card!', url });
-    } else {
-      alert('Sharing is not supported on this device.');
+      cake.appendChild(candle);
     }
   }
 
@@ -194,48 +170,39 @@
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const mic = audioContext.createMediaStreamSource(stream);
         analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
+        analyser.fftSize = 256;
         dataArray = new Uint8Array(analyser.frequencyBinCount);
         mic.connect(analyser);
-        monitorVolume();
+        monitorMic();
       })
-      .catch(() => alert('Microphone access denied.'));
+      .catch(() => alert("Microphone access denied."));
   }
 
-  function monitorVolume() {
+  function monitorMic() {
     analyser.getByteFrequencyData(dataArray);
     let sum = 0;
     for (let i = 0; i < dataArray.length; i++) {
       sum += dataArray[i];
     }
-    const average = sum / dataArray.length;
+    const avg = sum / dataArray.length;
 
-    if (average > 50) {
-      blowCandles();
+    flameElements.forEach(f => {
+      if (avg > 20 && avg < 50) {
+        f.classList.add('wiggle');
+      } else {
+        f.classList.remove('wiggle');
+      }
+    });
+
+    if (avg > 50) {
+      flameElements.forEach(f => f.style.display = 'none');
+      document.getElementById('confetti').style.display = 'block';
+      document.getElementById('finalMessage').innerText = document.getElementById('messageInput').value;
       return;
     }
 
-    requestAnimationFrame(monitorVolume);
+    requestAnimationFrame(monitorMic);
   }
-
-  function blowCandles() {
-    flameElements.forEach(f => f.style.display = 'none');
-    document.getElementById('confetti').style.display = 'block';
-    document.getElementById('finalMessage').innerText = finalMessageText;
-  }
-
-  window.addEventListener('DOMContentLoaded', () => {
-    const params = new URLSearchParams(location.search);
-    const name = params.get('name');
-    const age = params.get('age');
-    const message = params.get('message');
-    if (name && age && message) {
-      document.getElementById('nameInput').value = name;
-      document.getElementById('ageInput').value = age;
-      document.getElementById('messageInput').value = message;
-      createCard(true);
-    }
-  });
 </script>
 </body>
 </html>
