@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#ffb3cc" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Birthday Card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    html, body { margin:0; padding:0; background:radial-gradient(circle,#ffe6f0,#ffb3cc); font-family:'Comic Neue', cursive; text-align:center; color:#333; overflow-x:hidden; }
+    .container { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+    h1 { font-size:2.5em; margin-bottom:10px; }
+    input, textarea, button { padding:15px; margin:8px; border-radius:10px; border:2px solid #ff80aa; font-size:1.2em; width:90%; max-width:400px; box-sizing:border-box; font-family:'Comic Neue', cursive; }
+    button { background:#ff66a3; color:#fff; cursor:pointer; transition:background .3s; }
+    button:hover { background:#ff3385; }
+    #cake { margin-top:20px; display:flex; flex-wrap:wrap; justify-content:center; }
+    .candle { width:10px; height:30px; background:orange; margin:5px; position:relative; }
+    .flame { width:8px; height:8px; background:yellow; border-radius:50%; position:absolute; top:-10px; left:1px; }
+    #confetti { font-size:40px; animation:fall 2s ease-in-out forwards; margin-top:20px; display:none; }
+    @keyframes fall { 0%{transform:translateY(-100vh);}100%{transform:translateY(0);} }
+    #cardContainer { display:none; flex-direction:column; align-items:center; width:100%; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎂 Make a Birthday Card 🎉</h1>
+    <div id="formContainer">
+      <input type="text" id="nameInput" placeholder="Recipient's Name" /><br />
+      <input type="number" id="ageInput" placeholder="Age" /><br />
+      <textarea id="messageInput" placeholder="Your birthday message"></textarea><br />
+      <button onclick="createCard()">Create Card</button>
+    </div>
+    <div id="cardContainer">
+      <h2>Happy Birthday <span id="recipientName"></span>! 🎈</h2>
+      <div id="cake"></div>
+      <p>Blow out the candles! 🎤</p>
+      <button onclick="startListening()">Start Listening</button>
+      <div id="confetti">🎊🎉✨💖</div>
+      <div id="finalMessage" style="margin-top:20px;font-size:1.5em;"></div>
+    </div>
+  </div>
+
+  <script>
+    let flameElements = [];
+    let recognition;
+
+    function createCard() {
+      const name = document.getElementById('nameInput').value.trim();
+      const age = parseInt(document.getElementById('ageInput').value);
+      const message = document.getElementById('messageInput').value.trim();
+      if (!name || !age || !message || age <= 0) {
+        alert("Please fill out all fields correctly.");
+        return;
+      }
+      document.getElementById('recipientName').innerText = name;
+      document.getElementById('cake').innerHTML = '';
+      flameElements = [];
+      for (let i = 0; i < age && i < 100; i++) {
+        const candle = document.createElement('div');
+        candle.className = 'candle';
+        const flame = document.createElement('div');
+        flame.className = 'flame';
+        flameElements.push(flame);
+        candle.appendChild(flame);
+        document.getElementById('cake').appendChild(candle);
+      }
+      document.getElementById('formContainer').style.display = 'none';
+      document.getElementById('cardContainer').style.display = 'flex';
+      document.getElementById('finalMessage').innerText = '';
+      document.getElementById('confetti').style.display = 'none';
+    }
+
+    function startListening() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert('Speech Recognition not supported');
+        return;
+      }
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      recognition.onresult = (e) => {
+        const t = e.results[0][0].transcript.toLowerCase();
+        if (t.includes("blow") || t.includes("out")) {
+          blowCandles();
+        }
+      };
+      recognition.onerror = (e) => console.error(e);
+      recognition.start();
+    }
+
+    function blowCandles() {
+      flameElements.forEach(f => f.style.display = 'none');
+      document.getElementById('confetti').style.display = 'block';
+      document.getElementById('finalMessage').innerText = document.getElementById('messageInput').value;
+    }
+
+    // Show "Add to Home Screen" prompt
+    window.addEventListener('beforeinstallprompt', e => {
+      e.userChoice.then(choice => {
+        if (choice.outcome === 'accepted') console.log('User added to home screen');
+      });
+    });
+  </script>
+</body>
+</html>
